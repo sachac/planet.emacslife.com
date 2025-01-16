@@ -123,7 +123,8 @@ async function detectFeedInfo(entry, text, feed) {
 			}
 		}
 	}
-	const sorted = feed.items?.sort((a, b) => a?.options?.date > b?.options?.date ? -1 : 1);
+	const sorted = feed.items?.filter((item) => includeItemBasedOnFeedFilter(entry, item))
+				.sort((a, b) => a?.options?.date > b?.options?.date ? -1 : 1);
 	if (sorted && sorted.length > 0) {
 		entry.lastPostDate = sorted[0]?.options?.date?.toISOString() || '';
 	} else {
@@ -136,7 +137,7 @@ const NOW = new Date();
 const DATE_THRESHOLD = new Date();
 DATE_THRESHOLD.setDate(DATE_THRESHOLD.getDate() - 14);
 
-function includeItem(feedEntry, item) {
+function includeItemBasedOnFeedFilter(feedEntry, item) {
 	if (feedEntry.filter) {
 		const re = new RegExp(feedEntry.filter, 'i');
 		if (!item.options?.content?.text?.match(re)
@@ -144,7 +145,11 @@ function includeItem(feedEntry, item) {
 			return false;
 		}
 	}
-	return item.options.date >= DATE_THRESHOLD && item.options.date <= NOW;
+	return true;
+}
+
+function includeItem(feedEntry, item) {
+	return includeItemBasedOnFeedFilter(feedEntry, item) && item.options.date >= DATE_THRESHOLD && item.options.date <= NOW;
 }
 
 function convertURL(base, current) {
@@ -227,6 +232,21 @@ function makeFeed(items) {
 	return feed;
 }
 
+function escapeXml(unsafe) {
+	if (!unsafe) return null;
+
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+        switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+        }
+    });
+}
+
+
 function makeOPML(feedList) {
 	const opml = new Opml();
 	opml.setHead('title', 'Planet Emacslife');
@@ -234,10 +254,10 @@ function makeOPML(feedList) {
 	opml.head.ownerEmail = 'sacha@sachachua.com';
 	feedList.forEach((entry) => {
 		opml.addOutline({type: 'rss',
-										 text: entry.name,
-										 title: entry.name,
-										 xmlUrl: entry.feed,
-										 htmlUrl: entry.link});
+										 text: escapeXml(entry.name),
+										 title: escapeXml(entry.name),
+										 xmlUrl: escapeXml(entry.feed),
+										 htmlUrl: escapeXml(entry.link)});
 	});
 	return opml.toString();
 }
