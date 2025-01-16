@@ -1,10 +1,21 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
-import { Feed, Opml } from '@gaphub/feed';
+import { Feed, FeedParser, Opml } from '@gaphub/feed';
 import nunjucks from 'nunjucks';
-import Parser from 'rss-parser';
 import sanitizeHtml from 'sanitize-html';
+import urlJoin from 'url-join';
+import * as cheerio from 'cheerio';
 
-const ITEM_LIMIT = 50;
+import process from 'process';
+
+const DEBUG = process.argv[2] == 'loud';
+
+function debug() {
+	if (DEBUG) {
+		console.debug.apply(console, arguments);
+	}
+}
+
+const FEED_LIMIT = 0;
 const SANITIZE_HTML_OPTIONS = {
 		allowedTags: [
 			"address", "article", "aside", "footer", "header", "h1", "h2", "h3", "h4",
@@ -33,7 +44,7 @@ const SANITIZE_HTML_OPTIONS = {
 			'popovertarget', 'popovertargetaction', 'poster', 'preload',
 			'referrerpolicy', 'rel', 'rows', 'rowspan', 'sandbox', 'scope',
 			'shape', 'size', 'sizes', 'slot', 'span', 'spellcheck', 'src',
-			'srcdoc', 'srclang', 'srcset', 'start', 'step', 'style',
+			'srcdoc', 'srclang', 'srcset', 'start', 'step', // 'style',
 			'tabindex', 'target', 'title', 'translate', 'type', 'usemap',
 			'value', 'width', 'wrap',
 			// Event handlers
@@ -61,7 +72,7 @@ const SANITIZE_HTML_OPTIONS = {
 		disallowedTagsMode: 'discard',
 		allowedAttributes: {
 			a: ['href', 'name', 'target'],
-			video: ['src'],
+			video: ['src', 'poster'],
 			// We don't currently allow img itself by default, but
 			// these attributes would make sense if we did.
 			img: ['src', 'srcset', 'alt', 'title', 'width', 'height', 'loading']
@@ -78,7 +89,7 @@ const SANITIZE_HTML_OPTIONS = {
 };
 
 const xmlParser = new XMLParser({ignoreAttributes: false});
-const parser = new Parser();
+const parser = new FeedParser();
 import fs from 'fs';
 
 const feeds = JSON.parse(fs.readFileSync('data/feeds.json'));
@@ -86,54 +97,122 @@ const feeds = JSON.parse(fs.readFileSync('data/feeds.json'));
 async function detectFeedInfo(entry, text, feed) {
 	const xml = xmlParser.parse(text);
 	if (!entry.link) {
-		if (xml?.rss?.channel?.link) {
+		if (feed?.options?.link) {
+			entry.link = feed.options.link;
+		} else if (xml?.rss?.channel?.link) {
 			entry.link = xml?.rss?.channel?.link;
-		} else {
-			if (xml?.rss?.channel['atom:link']) {
+		} else if (xml?.rss?.channel['atom:link']) {
+			if (xml?.rss?.channel['atom:link'].length) {
 				for (let link of xml?.rss?.channel['atom:link']) {
 					if (link['@_rel'] == 'alternate' && link['@_type'] == 'text/html') {
 						entry.link = link['@_href'];
 					}
 				}
+			} else {
+				entry.link = xml?.rss?.channel['atom:link']['@_href'];
 			}
 		}
 	}
-	const sorted = feed.items?.sort((a, b) => a.isoDate > b.isoDate ? -1 : 1);
-	if (sorted) {
-		entry.lastPostDate = sorted[0].isoDate;
+	const sorted = feed.items?.sort((a, b) => a.date > b.date ? -1 : 1);
+	if (sorted && sorted.length > 0) {
+		entry.lastPostDate = sorted[0]?.isoDate;
 	}
 	return entry;
+}
+
+const NOW = new Date();
+const DATE_THRESHOLD = new Date();
+DATE_THRESHOLD.setDate(DATE_THRESHOLD.getDate() - 14);
+
+function includeItem(feedEntry, item) {
+	if (feedEntry.filter) {
+		const re = new RegExp(feedEntry.filter, 'i');
+		if (!item.options?.content?.text?.match(re)
+				&& !item.options?.content?.description?.match(re)) {
+			return false;
+		}
+	}
+	return item.options.date >= DATE_THRESHOLD && item.options.date <= NOW;
+}
+
+function convertURL(base, current) {
+	if (!current || current.match(/^(https?|file|ftps?|mailto|javascript|data:image\/[^;]{2,9};):/i)) {
+		return current;
+	} else {
+		return urlJoin(base, current);
+	}
+}
+
+function convertRelativeLinksToAbsolute(entry, source) {
+	const $ = cheerio.load(source, {decodeEntities: false});
+	$("a[href^='/'], img[src^='/'], video[src^='/']").each(function() {
+    const $this = $(this);
+		const base = entry.link;
+		if ($this.attr('href')) {
+			$this.attr("href", convertURL(base, $this.attr('href')));
+		}
+		if ($this.attr("src")) {
+			$this.attr("src", convertURL(base, $this.attr('src')));
+    }
+  });
+	return $.html();
 }
 
 async function fetchFeedsAndEntries(feeds) {
 	return feeds.reduce(async (prev, entry) => {
 		prev = await prev;
-		const text = await fetch(entry.feed).then((res) => res.text());
+		if (entry.disabled) return prev;
 		try {
-			const feed = await parser.parseString(text);
+			const text = await fetch(entry.feed).then((res) => res.text());
+			const feed = parser.parseString(text);
+			debug(entry.feed);
 			prev.feedList.push(await detectFeedInfo(entry, text, feed));
-			console.debug(entry.feed);
 			feed.items.forEach(item => {
-				console.debug('  ' + item.link);
-				item.channel_link = entry.link;
-				item.channel_title = entry.name;
-				item.channel_name = entry.name;
-				item.author = item.creator || item.channel_name;
-				item.date = item.isoDate;
-				if (item.isoDate) {
-					item.content = sanitizeHtml(item.content, SANITIZE_HTML_OPTIONS);
-
-					if (item.contentSnippet) {
-						delete item.contentSnippet;
-					}
+				if (includeItem(entry, item)) {
+					item.channel_link = entry.link;
+					item.channel_title = entry.name;
+					item.channel_name = entry.name;
+					item.author = item.creator || item.channel_name;
+					item.date = item.options.date
+					item.isoDate = item.date.toISOString();
+					item.title = item.options.title.text;
+					item.link = item.options.link;
+					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
+					debug('  ' + item.link);
 					prev.items.push(item);
 				}
 			});
 		} catch (err) {
-			console.log(entry.feed, err);
+			prev.errors.push(entry.feed + ' - ' + err);
+			debug(entry.feed, err);
 		}
 		return prev;
-	}, { feedList: [], items: [] });
+	}, { feedList: [], items: [], errors: []});
+}
+
+function makeFeed(items) {
+	const feed = new Feed({
+		title: 'Planet Emacslife',
+		id: 'https://planet.emacslife.com/',
+		link: 'https://planet.emacslife.com/',
+		language: 'en',
+		copyright: 'Various authors',
+		authors: [{name: 'Various authors'}],
+		feedLinks: {
+			atom: 'https://planet.emacslife.com/atom.xml'
+		},
+	});
+	items.forEach((item) => {
+		feed.addItem({
+			title: item.channel_name + ': ' + item.title,
+			id: item.link,
+			link: item.link,
+			content: item.content,
+			authors: [{name: item.options.author || item.channel_name, link: item.channel_link}],
+			date: item.date
+		});
+	});
+	return feed;
 }
 
 function makeOPML(feedList) {
@@ -152,12 +231,18 @@ function makeOPML(feedList) {
 }
 
 (async () => {
-	let { feedList, items } = await fetchFeedsAndEntries(feeds);
+	let { feedList, items, errors } = await fetchFeedsAndEntries(FEED_LIMIT > 0 ? feeds.slice(0, FEED_LIMIT) : feeds);
 	// Sort and limit
 	feedList = feedList.sort((a, b) => a.name < b.name ? -1 : 1);
-	items = items.sort((a, b) => a.isoDate > b.isoDate ? -1 : 1).slice(0, ITEM_LIMIT);
+	items = items.sort((a, b) => a.date > b.date ? -1 : 1);
 	nunjucks.configure('tmpl');
 	fs.writeFileSync('html/index.html', nunjucks.render('index.njk', { items: items, sites: feedList }));
-	fs.writeFileSync('html/opml.xml', await makeOPML(feedList));
-
+	fs.writeFileSync('html/opml.xml', makeOPML(feedList));
+	const feed = makeFeed(items);
+	fs.writeFileSync('html/atom.xml', feed.atom1());
+	fs.writeFileSync('html/rss.xml', feed.rss2());
+	if (errors.length > 0) {
+		debug('ERRORS');
+		debug(errors.join('\n'));
+	}
 })();
