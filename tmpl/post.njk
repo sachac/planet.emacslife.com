@@ -1,0 +1,27 @@
+  {% set url = item.url %}
+  {% set title = item.title|safe %}
+  {% set avatar = item.avatar %}
+  {% set siteUrl = item.siteUrl %}
+  {% set siteName = item.name %}
+  {% set published = item.published|readableDate %}
+  {% set description = item.description %}
+
+  <article class="post">
+		<h2 class="post-title">
+      {% if url %}
+				<a href="{{ url }}" class="clickable-item">
+      {% endif %}
+      {{ title }}
+      {% if url %}
+				</a>
+      {% endif %}
+    </h2>
+
+    <div class="post-description entry">
+    {% if item.description %}
+      {{ item.description | safe }}
+    {% endif %}
+		</div>
+		<pre class="mode-line">-1:-- <a href="{{ url }}" rel="bookmark">{{ title }}</a> (Post {{ siteName }})--L0--C0--{{ published }}</pre>
+
+	</article>

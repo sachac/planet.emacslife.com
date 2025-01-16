@@ -1,0 +1,9 @@
+<div class="sitelist">
+  <ul>
+		{% for site in sites %}
+			{% if site.hideFromSiteList != true %}
+				<li><a href="{{ site.feed }}">{{ site.name }}</a></li>
+			{% endif %}
+		{% endfor %}
+  </ul>
+</div>

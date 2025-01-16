@@ -1,0 +1,23 @@
+{
+  "name": "planet.emacslife.com",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "dependencies": {
+    "@11ty/eleventy": "^3.0.0",
+    "@gaphub/feed": "^5.2.4",
+    "cheerio": "^1.0.0",
+    "fast-xml-parser": "^4.5.1",
+    "nunjucks": "^3.2.4",
+    "rss-parser": "^3.13.0",
+    "sanitize-html": "^2.14.0",
+    "url-join": "^5.0.0"
+  }
+}

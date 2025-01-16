@@ -73,6 +73,10 @@ const SANITIZE_HTML_OPTIONS = {
 		allowedAttributes: {
 			a: ['href', 'name', 'target'],
 			video: ['src', 'poster'],
+			span: ['class'],
+			div: ['class'],
+			code: ['class'],
+			kbd: ['class'],
 			// We don't currently allow img itself by default, but
 			// these attributes would make sense if we did.
 			img: ['src', 'srcset', 'alt', 'title', 'width', 'height', 'loading']
@@ -95,27 +99,35 @@ import fs from 'fs';
 const feeds = JSON.parse(fs.readFileSync('data/feeds.json'));
 
 async function detectFeedInfo(entry, text, feed) {
-	const xml = xmlParser.parse(text);
 	if (!entry.link) {
 		if (feed?.options?.link) {
 			entry.link = feed.options.link;
-		} else if (xml?.rss?.channel?.link) {
-			entry.link = xml?.rss?.channel?.link;
-		} else if (xml?.rss?.channel['atom:link']) {
-			if (xml?.rss?.channel['atom:link'].length) {
-				for (let link of xml?.rss?.channel['atom:link']) {
-					if (link['@_rel'] == 'alternate' && link['@_type'] == 'text/html') {
-						entry.link = link['@_href'];
+		} else {
+			try {
+				const xml = xmlParser.parse(text);
+				if (xml?.rss?.channel?.link) {
+					entry.link = xml?.rss?.channel?.link;
+				} else if (xml?.rss?.channel['atom:link']) {
+					if (xml?.rss?.channel['atom:link'].length) {
+						for (let link of xml?.rss?.channel['atom:link']) {
+							if (link['@_rel'] == 'alternate' && link['@_type'] == 'text/html') {
+								entry.link = link['@_href'];
+							}
+						}
+					} else {
+						entry.link = xml?.rss?.channel['atom:link']['@_href'];
 					}
 				}
-			} else {
-				entry.link = xml?.rss?.channel['atom:link']['@_href'];
+			} catch (err) {
+				debug("Couldn't parse XML for extra info");
 			}
 		}
 	}
-	const sorted = feed.items?.sort((a, b) => a.date > b.date ? -1 : 1);
+	const sorted = feed.items?.sort((a, b) => a?.options?.date > b?.options?.date ? -1 : 1);
 	if (sorted && sorted.length > 0) {
-		entry.lastPostDate = sorted[0]?.isoDate;
+		entry.lastPostDate = sorted[0]?.options?.date?.toISOString() || '';
+	} else {
+		entry.lastPostDate = '';
 	}
 	return entry;
 }
@@ -233,7 +245,7 @@ function makeOPML(feedList) {
 (async () => {
 	let { feedList, items, errors } = await fetchFeedsAndEntries(FEED_LIMIT > 0 ? feeds.slice(0, FEED_LIMIT) : feeds);
 	// Sort and limit
-	feedList = feedList.sort((a, b) => a.name < b.name ? -1 : 1);
+	feedList = feedList.sort((a, b) => a.lastPostDate > b.lastPostDate ? -1 : 1);
 	items = items.sort((a, b) => a.date > b.date ? -1 : 1);
 	nunjucks.configure('tmpl');
 	fs.writeFileSync('html/index.html', nunjucks.render('index.njk', { items: items, sites: feedList }));

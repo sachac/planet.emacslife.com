@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta name="viewport" content="width=device-width"/>
+  <meta charset="UTF-8">
+  <title>{{ name }}</title>
+  <link rel="stylesheet" type="text/css" href="/style.css"/>
+  <link href="atom.xml" rel="alternate" type="application/atom+xml"
+        title="Atom feed" />
+</head>
+<body>
+  <div id="header">
+    <h1><a href="">{{ name }}</a></h1>
+  </div>
+
+  <div id="page">
+    <div id="content" class="narrowcolumn">
+      {% for item in items %}
+        <div class="post">
+					{% if item.title %}
+            <h2>
+              <a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
+              <a rel="bookmark" href="{{ item.link }}">{{ item.title }}</a>
+            </h2>
+					{% endif %}
+          <div class="entry">
+            {{ item.content | safe }}
+            <div class="link"><a href="{{ item.link }}" rel="bookmark">{{ item.link }}</a></div>
+          </div>
+
+					<pre class="mode-line">-1:-- <a href="{{ item.link }}" rel="bookmark">{{ item.title }}</a> (Post{% if item.author %} {{ item.author }}{% endif %})--L0--C0--{{ item.isoDate }}</pre>
+        </div>
+      {% endfor %}
+    </div> <!-- #content -->
+
+    <div id="sidebar">
+      <ul>
+        <li>
+          <h2>{{ name }}</h2>
+          <ul>
+            <li><a type="application/atom+xml" href="atom.xml" rel="alternate"><img src="/feed-icon-14x14.png" alt="Atom feed" /></a></li>
+            <li>powered by <a href="http://intertwingly.net/code/venus/">Planet Venus</a></li>
+            <li><a href="/">en</a> run by <a href="http://sachachua.com">Sacha Chua</a></li>
+            <li><a href="/ru/">ru</a> run by <a href="http://alexott-ru.blogspot.com/">Alex Ott</a></li>
+            <li><a href="/zh/">zh</a> run by <a href="https://github.com/RenWenshan">Wenshan</a></li>
+            <li><a href="http://planet.emacs-es.org/">es</a> run by drymer (external)
+					</ul>
+					<div><strong><a href="mailto:sacha@sachachua.com">Add your blog's Emacs feed</a></strong>	</div>
+        </li>
+        <li>
+          <h2>Subscriptions (<a href="opml.xml">OPML</a>)</h2>
+          <ul>
+            {% for feed in sites %}
+              <li><a href="{{ feed.link }}" title="{{ feed.lastPostDate }}">{{ feed.name }}</a> <a href="{{ feed.feed }}">(feed)</a></li>
+            {% endfor %}
+          </ul>
+        </li>
+        <li><a href="https://emacslife.com/calendar">Calendar of upcoming Emacs events</a></li>
+      </ul>
+    </div>
+	</div> <!-- .page -->
+	<p style="clear: both">Please note that planet.emacslife.com aggregates blogs, and blog authors might mention or link to nonfree things. To add a feed to this page, please e-mail the RSS or ATOM feed URL to <a href="mailto:sacha@sachachua.com?subject=Planet+Emacslife">sacha@sachachua.com</a> . Thank you!</p>
+
+</body>
+</html>
