@@ -4,10 +4,14 @@ import nunjucks from 'nunjucks';
 import sanitizeHtml from 'sanitize-html';
 import urlJoin from 'url-join';
 import * as cheerio from 'cheerio';
-
+import fs from 'fs';
 import process from 'process';
+import path from 'path';
 
-const DEBUG = process.argv[2] == 'loud';
+const DEBUG = true;
+const configFile= process.argv[2] || 'data/feeds.json';
+const feeds = JSON.parse(fs.readFileSync(configFile));
+const outputDir = process.argv[3] || 'html';
 
 function debug() {
 	if (DEBUG) {
@@ -94,9 +98,7 @@ const SANITIZE_HTML_OPTIONS = {
 
 const xmlParser = new XMLParser({ignoreAttributes: false});
 const parser = new FeedParser();
-import fs from 'fs';
 
-const feeds = JSON.parse(fs.readFileSync('data/feeds.json'));
 
 async function detectFeedInfo(entry, text, feed) {
 	if (!entry.link) {
@@ -193,7 +195,7 @@ async function fetchFeedsAndEntries(feeds) {
 					item.date = item.options.date
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
-					item.link = item.options.link;
+					item.link = item.options.link || item.options.id;
 					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
 					debug('  ' + item.link);
 					prev.items.push(item);
@@ -268,11 +270,11 @@ function makeOPML(feedList) {
 	feedList = feedList.sort((a, b) => a.lastPostDate > b.lastPostDate ? -1 : 1);
 	items = items.sort((a, b) => a.date > b.date ? -1 : 1);
 	nunjucks.configure('tmpl');
-	fs.writeFileSync('html/index.html', nunjucks.render('index.njk', { items: items, sites: feedList }));
-	fs.writeFileSync('html/opml.xml', makeOPML(feedList));
+	fs.writeFileSync(path.join(outputDir, 'index.html'), nunjucks.render('index.njk', { items: items, sites: feedList }));
+	fs.writeFileSync(path.join(outputDir, 'opml.xml'), makeOPML(feedList));
 	const feed = makeFeed(items);
-	fs.writeFileSync('html/atom.xml', feed.atom1());
-	fs.writeFileSync('html/rss.xml', feed.rss2());
+	fs.writeFileSync(path.join(outputDir, 'atom.xml'), feed.atom1());
+	fs.writeFileSync(path.join(outputDir, 'rss.xml'), feed.rss2());
 	if (errors.length > 0) {
 		debug('ERRORS');
 		debug(errors.join('\n'));
