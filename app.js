@@ -1,5 +1,6 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { Feed, FeedParser, Opml } from '@gaphub/feed';
+import NodeFetchCache, { FileSystemCache } from 'node-fetch-cache';
 import nunjucks from 'nunjucks';
 import sanitizeHtml from 'sanitize-html';
 import urlJoin from 'url-join';
@@ -11,6 +12,7 @@ import path from 'path';
 const DEBUG = true;
 const configFile= process.argv[2] || 'data/feeds.json';
 const config = JSON.parse(fs.readFileSync(configFile));
+const NOW = new Date();
 const feeds = config.feeds;
 const outputDir = process.argv[3] || 'html';
 
@@ -19,6 +21,10 @@ function debug() {
 		console.debug.apply(console, arguments);
 	}
 }
+
+const fetch = NodeFetchCache.create({
+  cache: new FileSystemCache({ttl: null}), // in ms
+});
 
 const FEED_LIMIT = 0;
 const SANITIZE_HTML_OPTIONS = {
@@ -136,23 +142,50 @@ async function detectFeedInfo(entry, text, feed) {
 	return entry;
 }
 
-const NOW = new Date();
-const DATE_THRESHOLD = new Date();
-DATE_THRESHOLD.setDate(DATE_THRESHOLD.getDate() - 14);
+function makeRecentItemFilter(numDays) {
+	const DATE_THRESHOLD = new Date();
+	DATE_THRESHOLD.setDate(DATE_THRESHOLD.getDate() - numDays);
+	return function includeOnlyRecentItem(item) {
+		return item.options.date >= DATE_THRESHOLD;
+	};
+}
+
+function includeOnlyRecentItem(item) {
+	return item.options.date >= DATE_THRESHOLD;
+}
+
+function textMatches(source, re) {
+	if (source) {
+		const $ = cheerio.load(source, {decodeEntities: false});
+		return $.text().match(re);
+	} else {
+		return null;
+	}
+}
 
 function includeItemBasedOnFeedFilter(feedEntry, item) {
 	if (feedEntry.filter) {
 		const re = new RegExp(feedEntry.filter, 'i');
-		if (!item.options?.content?.text?.match(re)
-				&& !item.options?.content?.description?.match(re)) {
+		let textMatch = textMatches(item.options?.content?.text, re);
+		let descMatch = textMatches(item.options?.content?.description, re);
+		if (!textMatch && !descMatch) {
 			return false;
 		}
 	}
 	return true;
 }
 
+let dateFilter = null;
+if (config.days) {
+	dateFilter = makeRecentItemFilter(config.days);
+}
+
 function includeItem(feedEntry, item) {
-	return includeItemBasedOnFeedFilter(feedEntry, item) && item.options.date >= DATE_THRESHOLD && item.options.date <= NOW;
+	let result = includeItemBasedOnFeedFilter(feedEntry, item) && item.options.date <= NOW;
+	if (result && dateFilter) {
+		result = dateFilter(item);
+	}
+	return result;
 }
 
 function convertURL(base, current) {
@@ -192,8 +225,9 @@ async function fetchFeedsAndEntries(feeds) {
 					item.channel_link = entry.link;
 					item.channel_title = entry.name;
 					item.channel_name = entry.name;
+					item.skipName = entry.skipName;
 					item.author = item.creator || item.channel_name;
-					item.date = item.options.date
+					item.date = item.options.date;
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
 					item.link = item.options.link || item.options.id;
@@ -212,19 +246,17 @@ async function fetchFeedsAndEntries(feeds) {
 
 function makeFeed(items) {
 	const feed = new Feed({
-		title: 'Planet Emacslife',
-		id: 'https://planet.emacslife.com/',
-		link: 'https://planet.emacslife.com/',
-		language: 'en',
-		copyright: 'Various authors',
-		authors: [{name: 'Various authors'}],
-		feedLinks: {
-			atom: 'https://planet.emacslife.com/atom.xml'
-		},
+		title: config.title,
+		id: config.link,
+		link: config.link,
+		language: config.language,
+		copyright: config.copyright,
+		authors: config.authors,
+		feedLinks: config.feedLinks
 	});
 	items.forEach((item) => {
 		feed.addItem({
-			title: item.channel_name + ': ' + item.title,
+			title: item.channel_name && !item.skipName ? item.channel_name + ': ' + item.title : item.title,
 			id: item.link,
 			link: item.link,
 			content: item.content,
@@ -271,7 +303,12 @@ function makeOPML(feedList) {
 	feedList = feedList.sort((a, b) => a.lastPostDate > b.lastPostDate ? -1 : 1);
 	items = items.sort((a, b) => a.date > b.date ? -1 : 1);
 	nunjucks.configure('tmpl');
-	fs.writeFileSync(path.join(outputDir, 'index.html'), nunjucks.render('index.njk', { items: items, sites: feedList }));
+	fs.writeFileSync(path.join(outputDir, 'index.html'),
+									 nunjucks.render('index.njk',
+																	 { items: items,
+																		 sites: feedList,
+																		 name: config.title
+																	 }));
 	fs.writeFileSync(path.join(outputDir, 'opml.xml'), makeOPML(feedList));
 	const feed = makeFeed(items);
 	fs.writeFileSync(path.join(outputDir, 'atom.xml'), feed.atom1());

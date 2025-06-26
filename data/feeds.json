@@ -1,4 +1,15 @@
 {
+		"days": 14,
+		"title": "Planet Emacslife",
+		"id": "https://planet.emacslife.com/org/",
+		"link": "https://planet.emacslife.com/org/",
+		"language": "en",
+		"copyright": "Various authors",
+		"authors": [{"name": "Various authors"}],
+		"feedLinks": {
+				"atom": "https://planet.emacslife.com/org/atom.xml",
+				"rss": "https://planet.emacslife.com/org/rss.xml"
+		},
 		"feeds": [
 				{ "feed": "https://sachachua.com/blog/category/emacs/feed/index.xml",
 					"name": "Sacha Chua" },
@@ -561,11 +572,5 @@
 				{ "feed": "https://taingram.org/blog/blog-rss.xml",
 					"filter": "emacs|org-mode",
 					"name": "Thomas Ingram"}
-		],
-		"subfeeds": [
-				{
-						"id": "org",
-						"textFilter": "\borg(mode)?\b"
-				}
 		]
 }

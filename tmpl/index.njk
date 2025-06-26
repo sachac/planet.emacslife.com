@@ -16,11 +16,27 @@
 
   <div id="page">
     <div id="content" class="narrowcolumn">
+			Recently:
+			<nav>
+				<ul>
+				{% for item in items %}
+					<li>
+						{% if item.channel_name and not item.skipName %}
+							<a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
+						{% endif %}
+            <a rel="bookmark" href="{{ item.link }}">{{ item.title }}</a>
+          </li>
+				{% endfor %}
+				</ul>
+			</nav>
+
       {% for item in items %}
-        <div class="post">
+        <article class="post">
 					{% if item.title %}
             <h2>
-              <a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
+							{% if item.channel_name and not item.skipName %}
+								<a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
+							{% endif %}
               <a rel="bookmark" href="{{ item.link }}">{{ item.title }}</a>
             </h2>
 					{% endif %}
@@ -30,7 +46,7 @@
           </div>
 
 					<pre class="mode-line">-1:-- <a href="{{ item.link }}" rel="bookmark">{{ item.title }}</a> (Post{% if item.author %} {{ item.author }}{% endif %})--L0--C0--{{ item.isoDate }}</pre>
-        </div>
+        </article>
       {% endfor %}
     </div> <!-- #content -->
 
