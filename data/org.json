@@ -1,0 +1,15 @@
+{
+		"feeds": [
+				{ "feed": "https://planet.emacslife.com/rss.xml", "filter": "\\borg(mode)?\\b", "name": "Planet Emacslife", "skipName": true }
+		],
+		"title": "Planet Emacslife - Org Mode",
+		"id": "https://planet.emacslife.com/org/",
+		"link": "https://planet.emacslife.com/org/",
+		"language": "en",
+		"copyright": "Various authors",
+		"authors": [{"name": "Various authors"}],
+		"feedLinks": {
+				"atom": "https://planet.emacslife.com/org/atom.xml",
+				"rss": "https://planet.emacslife.com/org/rss.xml"
+		}
+}
