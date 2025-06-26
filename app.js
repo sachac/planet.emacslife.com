@@ -10,7 +10,8 @@ import path from 'path';
 
 const DEBUG = true;
 const configFile= process.argv[2] || 'data/feeds.json';
-const feeds = JSON.parse(fs.readFileSync(configFile));
+const config = JSON.parse(fs.readFileSync(configFile));
+const feeds = config.feeds;
 const outputDir = process.argv[3] || 'html';
 
 function debug() {
