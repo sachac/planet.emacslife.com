@@ -168,11 +168,14 @@ function includeItemBasedOnFeedFilter(feedEntry, item) {
 		const re = new RegExp(feedEntry.filter, 'i');
 		let textMatch = textMatches(item.options?.content?.text, re);
 		let descMatch = textMatches(item.options?.content?.description, re);
-		if (!textMatch && !descMatch) {
-			return false;
+		let catMatch = false;
+		if (item.options?.category) {
+			catMatch = item.options?.category.find((o) => o.name?.match(re));
 		}
+		return (textMatch || descMatch || catMatch);
+	} else {
+		return true;
 	}
-	return true;
 }
 
 let dateFilter = null;
