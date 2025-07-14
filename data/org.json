@@ -1,6 +1,6 @@
 {
 		"feeds": [
-				{ "feed": "https://planet.emacslife.com/rss.xml", "filter": "\\borg(mode)?\\b", "name": "Planet Emacslife", "skipName": true }
+				{ "feed": "https://planet.emacslife.com/rss.xml", "filter": "org[ -]?mode", "name": "Planet Emacslife", "skipName": true }
 		],
 		"title": "Planet Emacslife - Org Mode",
 		"id": "https://planet.emacslife.com/org/",
