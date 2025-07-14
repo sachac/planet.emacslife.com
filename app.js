@@ -106,7 +106,9 @@ const SANITIZE_HTML_OPTIONS = {
 const xmlParser = new XMLParser({ignoreAttributes: false});
 const parser = new FeedParser();
 
-
+function stripInvalidXmlChars(text) {
+	return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
 async function detectFeedInfo(entry, text, feed) {
 	if (!entry.link) {
 		if (feed?.options?.link) {
@@ -220,7 +222,7 @@ async function fetchFeedsAndEntries(feeds) {
 		if (entry.disabled) return prev;
 		try {
 			const text = await fetch(entry.feed).then((res) => res.text());
-			const feed = parser.parseString(text);
+			const feed = parser.parseString(stripInvalidXmlChars(text));
 			debug(entry.feed);
 			prev.feedList.push(await detectFeedInfo(entry, text, feed));
 			feed.items.forEach(item => {
