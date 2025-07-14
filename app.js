@@ -236,7 +236,7 @@ async function fetchFeedsAndEntries(feeds) {
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
 					item.link = item.options.link || item.options.id;
-					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
+					item.content = convertRelativeLinksToAbsolute(entry, stripInvalidXmlChars(sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS)));
 					debug('  ' + item.link);
 					prev.items.push(item);
 				}
@@ -274,8 +274,8 @@ function makeFeed(items) {
 
 function escapeXml(unsafe) {
 	if (!unsafe) return null;
-
-  return unsafe.replace(/[<>&'"]/g, function (c) {
+	const cleaned = stripInvalidXmlChars(unsafe);
+  return cleaned.replace(/[<>&'"]/g, function (c) {
         switch (c) {
             case '<': return '&lt;';
             case '>': return '&gt;';
