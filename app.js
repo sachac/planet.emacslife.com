@@ -106,9 +106,10 @@ const SANITIZE_HTML_OPTIONS = {
 const xmlParser = new XMLParser({ignoreAttributes: false});
 const parser = new FeedParser();
 
-function stripInvalidXmlChars(text) {
-	return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+function keepItemsWithValidCharacters(item) {
+	return !(item?.options?.content?.text || item?.options?.description?.text)?.match(/\uFFFF/);
 }
+
 async function detectFeedInfo(entry, text, feed) {
 	if (!entry.link) {
 		if (feed?.options?.link) {
@@ -134,7 +135,8 @@ async function detectFeedInfo(entry, text, feed) {
 			}
 		}
 	}
-	const sorted = feed.items?.filter((item) => includeItemBasedOnFeedFilter(entry, item))
+	const sorted = feed.items?.filter(keepItemsWithValidCharacters)
+				.filter((item) => includeItemBasedOnFeedFilter(entry, item))
 				.sort((a, b) => a?.options?.date > b?.options?.date ? -1 : 1);
 	if (sorted && sorted.length > 0) {
 		entry.lastPostDate = sorted[0]?.options?.date?.toISOString() || '';
@@ -186,7 +188,7 @@ if (config.days) {
 }
 
 function includeItem(feedEntry, item) {
-	let result = includeItemBasedOnFeedFilter(feedEntry, item) && item.options.date <= NOW;
+	let result = includeItemBasedOnFeedFilter(feedEntry, item) && item.options.date <= NOW && keepItemsWithValidCharacters(item);
 	if (result && dateFilter) {
 		result = dateFilter(item);
 	}
@@ -222,7 +224,7 @@ async function fetchFeedsAndEntries(feeds) {
 		if (entry.disabled) return prev;
 		try {
 			const text = await fetch(entry.feed).then((res) => res.text());
-			const feed = parser.parseString(stripInvalidXmlChars(text));
+			const feed = parser.parseString(text);
 			debug(entry.feed);
 			prev.feedList.push(await detectFeedInfo(entry, text, feed));
 			feed.items.forEach(item => {
@@ -236,7 +238,7 @@ async function fetchFeedsAndEntries(feeds) {
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
 					item.link = item.options.link || item.options.id;
-					item.content = convertRelativeLinksToAbsolute(entry, stripInvalidXmlChars(sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS)));
+					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
 					debug('  ' + item.link);
 					prev.items.push(item);
 				}
@@ -274,8 +276,7 @@ function makeFeed(items) {
 
 function escapeXml(unsafe) {
 	if (!unsafe) return null;
-	const cleaned = stripInvalidXmlChars(unsafe);
-  return cleaned.replace(/[<>&'"]/g, function (c) {
+	return unsafe.replace(/[<>&'"]/g, function (c) {
         switch (c) {
             case '<': return '&lt;';
             case '>': return '&gt;';
