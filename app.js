@@ -170,13 +170,14 @@ function textMatches(source, re) {
 function includeItemBasedOnFeedFilter(feedEntry, item) {
 	if (feedEntry.filter) {
 		const re = new RegExp(feedEntry.filter, 'i');
+		let titleMatch = textMatches(item.options?.title?.text, re);
 		let textMatch = textMatches(item.options?.content?.text, re);
-		let descMatch = textMatches(item.options?.content?.description, re);
+		let descMatch = textMatches(item.options?.content?.description || item?.options?.description?.text, re);
 		let catMatch = false;
 		if (item.options?.category) {
 			catMatch = item.options?.category.find((o) => o.name?.match(re));
 		}
-		return (textMatch || descMatch || catMatch);
+		return (titleMatch || textMatch || descMatch || catMatch);
 	} else {
 		return true;
 	}
@@ -241,6 +242,11 @@ async function fetchFeedsAndEntries(feeds) {
 					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
 					debug('  ' + item.link);
 					prev.items.push(item);
+				}
+				else if (!includeItemBasedOnFeedFilter(entry, item)) {
+					debug('  skip filter ' + item.options.link);
+				} else if (!keepItemsWithValidCharacters(item)) {
+					debug('  skip invalid ' + item.options.link);
 				}
 			});
 		} catch (err) {
