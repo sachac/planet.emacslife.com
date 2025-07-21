@@ -16,18 +16,20 @@
 
   <div id="page">
     <div id="content" class="narrowcolumn">
-			Recently:
 			<nav>
-				<ul>
-				{% for item in items %}
-					<li>
-						{% if item.channel_name and not item.skipName %}
-							<a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
-						{% endif %}
-            <a rel="bookmark" href="{{ item.link }}">{{ item.title }}</a>
-          </li>
-				{% endfor %}
-				</ul>
+				<details>
+					<summary>Recently:</summary>
+					<ul>
+						{% for item in items %}
+							<li>
+								{% if item.channel_name and not item.skipName %}
+									<a href="{{ item.channel_link }}" title="{{ item.channel_title }}">{{ item.channel_name }}</a>:
+								{% endif %}
+								<a rel="bookmark" href="{{ item.link }}">{{ item.title }}</a>
+							</li>
+						{% endfor %}
+					</ul>
+				</details>
 			</nav>
 
       {% for item in items %}
