@@ -311,7 +311,7 @@
 					"name": "Hanno" },
 				{ "feed": "https://oylenshpeegul.gitlab.io/blog/tags/emacs/index.xml",
 					"name": "Tim Heaney" },
-				{ "feed": "https://www.gnu.ca/~bandali/rss20.xml",
+				{ "feed": "https://kelar.org/~bandali/rss20.xml",
 					"name": "Amin Bandali" },
 				{ "feed": "https://christiantietze.de/posts/tags/emacs/feed.atom",
 					"name": "Christian Tietze" },
@@ -580,6 +580,11 @@
 				{ "feed": "https://gregnewman.io/emacs.xml",
 					"name": "Greg Newman" },
 				{ "feed": "https://zacromero.com/index.xml",
-					"name": "Zac Romero" }
+					"name": "Zac Romero" },
+				{ "feed": "https://randyridenour.net/atom.xml",
+					"name": "Randy Ridenour",
+					"filter": "Emacs" },
+				{ "feed": "https://tusharhero.codeberg.page/emacs.xml",
+					"name": "tusharhero" }
 		]
 }
