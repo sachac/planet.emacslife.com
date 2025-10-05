@@ -22,9 +22,9 @@ function debug() {
 	}
 }
 
-const fetch = NodeFetchCache.create({
+/*const fetch = NodeFetchCache.create({
   cache: new FileSystemCache({ttl: null}), // in ms
-});
+});*/
 
 const FEED_LIMIT = 0;
 const SANITIZE_HTML_OPTIONS = {
@@ -224,7 +224,10 @@ async function fetchFeedsAndEntries(feeds) {
 		prev = await prev;
 		if (entry.disabled) return prev;
 		try {
-			const text = await fetch(entry.feed).then((res) => res.text());
+			const text = await fetch(entry.feed,  {
+				headers: {
+					'User-Agent': 'Custom-planet.emacslife.com-Agent/1.0'
+				}}).then((res) => res.text());
 			const feed = parser.parseString(text);
 			debug(entry.feed);
 			prev.feedList.push(await detectFeedInfo(entry, text, feed));
