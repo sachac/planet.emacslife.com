@@ -3,7 +3,6 @@ import { Feed, FeedParser, Opml } from '@gaphub/feed';
 import NodeFetchCache, { FileSystemCache } from 'node-fetch-cache';
 import nunjucks from 'nunjucks';
 import sanitizeHtml from 'sanitize-html';
-import urlJoin from 'url-join';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
 import process from 'process';
@@ -200,20 +199,24 @@ function convertURL(base, current) {
 	if (!current || current.match(/^(https?|file|ftps?|mailto|javascript|data:image\/[^;]{2,9};):/i)) {
 		return current;
 	} else {
-		return urlJoin(base, current);
+		return new URL(current, base).href;
 	}
 }
 
-function convertRelativeLinksToAbsolute(entry, source) {
+function convertRelativeLinksToAbsolute(base, source) {
+  if (!base) {
+    return source;
+  }
 	const $ = cheerio.load(source, {decodeEntities: false});
-	$("a[href^='/'], img[src^='/'], video[src^='/']").each(function() {
+	$("a[href], img[src], video[src]").each(function() {
     const $this = $(this);
-		const base = entry.link;
 		if ($this.attr('href')) {
-			$this.attr("href", convertURL(base, $this.attr('href')));
+      const newURL = convertURL(base, $this.attr('href'));
+			$this.attr("href", newURL);
 		}
 		if ($this.attr("src")) {
-			$this.attr("src", convertURL(base, $this.attr('src')));
+      const newURL = convertURL(base, $this.attr('src'));
+			$this.attr("src", newURL);
     }
   });
 	return $.html();
@@ -242,7 +245,7 @@ async function fetchFeedsAndEntries(feeds) {
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
 					item.link = item.options.link || item.options.id;
-					item.content = convertRelativeLinksToAbsolute(entry, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
+					item.content = convertRelativeLinksToAbsolute(entry.link || item.link, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
 					debug('  ' + item.link);
 					prev.items.push(item);
 				}
