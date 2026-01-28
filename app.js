@@ -230,7 +230,7 @@ function cleanUpLinks(text) {
   for (let i = links.length - 1; i >= 0; i--) {
     const link = links[i];
     const rel = link.getAttribute('rel');
-    if (rel !== 'alternate' && rel !== 'self') {
+    if (rel && rel !== 'alternate' && rel !== 'self') {
       link.parentNode.removeChild(link);
     }
   }
