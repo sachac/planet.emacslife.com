@@ -1,5 +1,6 @@
-import { XMLParser, XMLBuilder } from "fast-xml-parser";
 import { Feed, FeedParser, Opml } from '@gaphub/feed';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
+
 import NodeFetchCache, { FileSystemCache } from 'node-fetch-cache';
 import nunjucks from 'nunjucks';
 import sanitizeHtml from 'sanitize-html';
@@ -102,7 +103,6 @@ const SANITIZE_HTML_OPTIONS = {
 		parseStyleAttributes: true
 };
 
-const xmlParser = new XMLParser({ignoreAttributes: false});
 const parser = new FeedParser();
 
 function keepItemsWithValidCharacters(item) {
@@ -115,7 +115,7 @@ async function detectFeedInfo(entry, text, feed) {
 			entry.link = feed.options.link;
 		} else {
 			try {
-				const xml = xmlParser.parse(text);
+				const xml = (new DOMParser()).parseFromString(text, 'text/xml');
 				if (xml?.rss?.channel?.link) {
 					entry.link = xml?.rss?.channel?.link;
 				} else if (xml?.rss?.channel['atom:link']) {
@@ -222,6 +222,22 @@ function convertRelativeLinksToAbsolute(base, source) {
 	return $.html();
 }
 
+/* This function works around FeedParser's inability to prioritize rel="alternate" in links by removing links that don't have rel="self" or rel="alternate". */
+
+function cleanUpLinks(text) {
+  const xml = (new DOMParser()).parseFromString(text, 'text/xml');
+  const links = xml.getElementsByTagName('link');
+  for (let i = links.length - 1; i >= 0; i--) {
+    const link = links[i];
+    const rel = link.getAttribute('rel');
+    if (rel !== 'alternate' && rel !== 'self') {
+      link.parentNode.removeChild(link);
+    }
+  }
+  return (new XMLSerializer()).serializeToString(xml);
+}
+
+
 async function fetchFeedsAndEntries(feeds) {
 	return feeds.reduce(async (prev, entry) => {
 		prev = await prev;
@@ -231,7 +247,7 @@ async function fetchFeedsAndEntries(feeds) {
 				headers: {
 					'User-Agent': 'Custom-planet.emacslife.com-Agent/1.0'
 				}}).then((res) => res.text());
-			const feed = parser.parseString(text);
+			const feed = parser.parseString(cleanUpLinks(text));
 			debug(entry.feed);
 			prev.feedList.push(await detectFeedInfo(entry, text, feed));
 			feed.items.forEach(item => {

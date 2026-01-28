@@ -13,11 +13,13 @@
   "dependencies": {
     "@11ty/eleventy": "^3.0.0",
     "@gaphub/feed": "^5.2.4",
+    "@xmldom/xmldom": "^0.8.11",
     "cheerio": "^1.0.0",
     "fast-xml-parser": "^4.5.1",
     "node-fetch-cache": "^5.0.2",
     "nunjucks": "^3.2.4",
     "rss-parser": "^3.13.0",
-    "sanitize-html": "^2.14.0"
+    "sanitize-html": "^2.14.0",
+    "xmldom": "^0.6.0"
   }
 }
