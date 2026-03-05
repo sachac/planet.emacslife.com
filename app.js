@@ -316,6 +316,53 @@ function escapeXml(unsafe) {
 }
 
 
+function formatDateRFC3339(date) {
+	const pad = (n) => String(n).padStart(2, '0');
+	return date.getUTCFullYear() + '-' +
+		pad(date.getUTCMonth() + 1) + '-' +
+		pad(date.getUTCDate()) + 'T' +
+		pad(date.getUTCHours()) + ':' +
+		pad(date.getUTCMinutes()) + ':' +
+		pad(date.getUTCSeconds()) + '+00:00';
+}
+
+function escapeOrgText(text) {
+	if (!text) return '';
+	return text.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
+}
+
+function makeOrgSocial(items, config) {
+	let lines = [];
+	lines.push('#+TITLE: ' + config.title);
+	lines.push('#+NICK: ' + (config.nick || config.title.replace(/\s+/g, '')));
+	if (config.description) {
+		lines.push('#+DESCRIPTION: ' + config.description);
+	}
+	if (config.link) {
+		lines.push('#+LINK: ' + config.link);
+	}
+	lines.push('#+LANGUAGE: ' + (config.language || 'en'));
+	lines.push('');
+	lines.push('* Posts');
+
+	items.forEach((item) => {
+		const id = formatDateRFC3339(item.date);
+		lines.push('** ' + id);
+		lines.push(':PROPERTIES:');
+		lines.push(':END:');
+		lines.push('');
+
+		const author = item.channel_name && !item.skipName ? item.channel_name + ': ' : '';
+		const title = author + (item.title || 'Untitled');
+		lines.push('*** ' + title);
+		lines.push('');
+		lines.push('[[' + item.link + '][Read original post]]');
+		lines.push('');
+	});
+
+	return lines.join('\n');
+}
+
 function makeOPML(feedList) {
 	const opml = new Opml();
 	opml.setHead('title', 'Planet Emacslife');
@@ -347,6 +394,7 @@ function makeOPML(feedList) {
 	const feed = makeFeed(items);
 	fs.writeFileSync(path.join(outputDir, 'atom.xml'), feed.atom1());
 	fs.writeFileSync(path.join(outputDir, 'rss.xml'), feed.rss2());
+	fs.writeFileSync(path.join(outputDir, 'social.org'), makeOrgSocial(items, config));
 	if (errors.length > 0) {
 		debug('ERRORS');
 		debug(errors.join('\n'));
