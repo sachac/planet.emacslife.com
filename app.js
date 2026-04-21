@@ -8,7 +8,10 @@ import * as cheerio from 'cheerio';
 import fs from 'fs';
 import process from 'process';
 import path from 'path';
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
 
+// Votre fetch() ici...
 const DEBUG = true;
 const configFile= process.argv[2] || 'data/feeds.json';
 const config = JSON.parse(fs.readFileSync(configFile));
