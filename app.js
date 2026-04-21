@@ -4,6 +4,7 @@ import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import NodeFetchCache, { FileSystemCache } from 'node-fetch-cache';
 import nunjucks from 'nunjucks';
 import sanitizeHtml from 'sanitize-html';
+import unescape from 'unescape';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
 import process from 'process';
@@ -18,7 +19,6 @@ const config = JSON.parse(fs.readFileSync(configFile));
 const NOW = new Date();
 const feeds = config.feeds;
 const outputDir = process.argv[3] || 'html';
-
 function debug() {
 	if (DEBUG) {
 		console.debug.apply(console, arguments);
@@ -240,6 +240,13 @@ function cleanUpLinks(text) {
   return (new XMLSerializer()).serializeToString(xml);
 }
 
+function convertDoubleEscaped(s) {
+	if (s.startsWith("&lt;")) {
+		return unescape(s);
+	} else {
+		return s;
+	}
+}
 
 async function fetchFeedsAndEntries(feeds) {
 	return feeds.reduce(async (prev, entry) => {
@@ -264,7 +271,13 @@ async function fetchFeedsAndEntries(feeds) {
 					item.isoDate = item.date.toISOString();
 					item.title = item.options.title.text;
 					item.link = item.options.link || item.options.id;
-					item.content = convertRelativeLinksToAbsolute(entry.link || item.link, sanitizeHtml(item?.options?.content?.text || item?.options?.description?.text, SANITIZE_HTML_OPTIONS));
+					const unescaped = convertDoubleEscaped(
+						item?.options?.content?.text || item?.options?.description?.text);
+					item.content = convertRelativeLinksToAbsolute(
+						entry.link || item.link,
+						sanitizeHtml(
+							unescaped,
+							SANITIZE_HTML_OPTIONS));
 					debug('  ' + item.link);
 					prev.items.push(item);
 				}
