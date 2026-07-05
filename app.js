@@ -361,16 +361,24 @@ function makeOrgSocial(items, config) {
 	lines.push('');
 	lines.push('* Posts');
 
+	// Post IDs (the timestamps) must be unique within the feed: nudge
+	// posts sharing a date one second apart.
+	const usedIds = new Set();
 	items.forEach((item) => {
-		const id = formatDateRFC3339(item.date);
-		lines.push('** ' + id);
+		let date = new Date(item.date);
+		while (usedIds.has(date.getTime())) {
+			date = new Date(date.getTime() + 1000);
+		}
+		usedIds.add(date.getTime());
+		lines.push('** ' + formatDateRFC3339(date));
 		lines.push(':PROPERTIES:');
+		lines.push(':BOT: blog-post ' + item.link);
 		lines.push(':END:');
 		lines.push('');
 
 		const author = item.channel_name && !item.skipName ? item.channel_name + ': ' : '';
-		const title = author + (item.title || 'Untitled');
-		lines.push('*** ' + title);
+		const title = (author + (item.title || 'Untitled')).replace(/\s+/g, ' ');
+		lines.push('*** ' + escapeOrgText(title));
 		lines.push('');
 		lines.push('[[' + item.link + '][Read original post]]');
 		lines.push('');
