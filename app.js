@@ -308,8 +308,8 @@ function makeFeed(items) {
 	items.forEach((item) => {
 		feed.addItem({
 			title: item.channel_name && !item.skipName ? item.channel_name + ': ' + item.title : item.title,
-			id: item.link,
-			link: item.link,
+			id: item.link.replace(/ /g, ''),
+			link: item.link.replace(/ /g, '%20'),
 			content: item.content,
 			authors: [{name: item.options.author || item.channel_name, link: item.channel_link}],
 			date: item.date

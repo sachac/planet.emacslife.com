@@ -1,14 +1,14 @@
 {
 		"days": 14,
 		"title": "Planet Emacslife",
-		"id": "https://planet.emacslife.com/org/",
-		"link": "https://planet.emacslife.com/org/",
+		"id": "https://planet.emacslife.com/",
+		"link": "https://planet.emacslife.com/",
 		"language": "en",
 		"copyright": "Various authors",
 		"authors": [{"name": "Various authors"}],
 		"feedLinks": {
-				"atom": "https://planet.emacslife.com/org/atom.xml",
-				"rss": "https://planet.emacslife.com/org/rss.xml"
+				"atom": "https://planet.emacslife.com/atom.xml",
+				"rss": "https://planet.emacslife.com/rss.xml"
 		},
 		"feeds": [{"feed":"http://acidwords.com/emacs.xml","name":"Sanel Zukan"},
 							{"feed":"http://alexott.blogspot.com/feeds/posts/default/-/emacs","name":"Alex Ott"},
@@ -197,7 +197,7 @@
 							{"feed":"https://plrj.org/category/emacs/feed/","name":"Paul Jorgensen"},
 							{"feed":"https://posts.tonyaldon.com/feed.xml","name":"Tony Aldon"},
 							{"feed":"https://pozorvlak.livejournal.com/data/atom?tag=emacs","name":"pozorvlak"},
-							{"feed":"https://protesilaos.com/codelog.xml","name":"Protesilaos Stavrou"},
+							{"feed":"https://protesilaos.com/codelog.xml","name":"Protesilaos"},
 							{"feed":"https://punchagan.muse-amuse.in/tags/emacs.xml","name":"punchagan"},
 							{"feed":"https://punchcard.wordpress.com/tag/emacs/feed/","name":"Christian Tinnefeld and Martin Grund"},
 							{"feed":"https://purplg.dev/index.xml","name":"Ben Whitley"},
@@ -313,8 +313,23 @@
 							 "filter": "Emacs"},
 							{"feed": "https://www.chiply.dev/rss.xml",
 							 "name": "Charlie Holland",
-							 "filter": "Emacs"}
-
+							 "filter": "Emacs"},
+							{"feed": "https://joshblais.com/index.xml",
+							 "name": "Joshua Blais",
+							 "disabled": "pending",
+							 "filter": "Emacs"},
+							{"feed": "https://www.acdw.net/tag/emacs/feed.xml",
+							 "name": "Case Duckworth"},
+							{"feed": "https://ray-on-emacs.blogspot.com/feeds/posts/default/-/Emacs",
+							 "name": "Raymond Zeitler"},
+							{"feed": "https://monadicsheep.org/blog/rss.xml",
+							 "name": "Monadic Sheep"},
+							{"feed": "https://ankit.earth/tags/emacs/atom.xml",
+							 "name": "Ankit Gadiya"},
+							{"feed": "https://www.bounga.org/feed/emacs.xml",
+							 "name": "Nicolas Cavigneaux"},
+							{"feed": "https://kristofferbalintona.me/tags/emacs/feed.xml",
+							 "name": "Kristoffer Balintona"}
 
   ]
 }
